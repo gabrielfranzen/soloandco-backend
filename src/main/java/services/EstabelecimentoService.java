@@ -1,0 +1,187 @@
+package services;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+import model.Checkin;
+import model.Estabelecimento;
+import model.Usuario;
+import model.dto.CheckinDetalheDTO;
+import model.dto.CheckinRequest;
+import model.dto.CheckinResponse;
+import repository.CheckinRepository;
+import repository.EstabelecimentoRepository;
+import repository.UsuarioRepository;
+
+@Path("/estabelecimentos")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class EstabelecimentoService {
+
+    private static final double RAIO_MAXIMO_METROS = 50.0;
+
+    @Inject
+    private EstabelecimentoRepository estabelecimentoRepository;
+
+    @Inject
+    private CheckinRepository checkinRepository;
+
+    @Inject
+    private UsuarioRepository usuarioRepository;
+
+    @GET
+    public Response listar() {
+        List<Estabelecimento> ativos = estabelecimentoRepository.listarAtivos();
+        return Response.ok(ativos).build();
+    }
+
+    @POST
+    public Response cadastrar(Estabelecimento estabelecimento) {
+        try {
+            if (estabelecimento == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"Dados do estabelecimento são obrigatórios\"}")
+                        .build();
+            }
+
+            if (estabelecimento.getNome() == null || estabelecimento.getNome().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"Nome é obrigatório\"}")
+                        .build();
+            }
+
+            if (estabelecimento.getLatitude() == null || estabelecimento.getLongitude() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"Latitude e longitude são obrigatórias\"}")
+                        .build();
+            }
+
+            if (estabelecimento.getAtivo() == null) {
+                estabelecimento.setAtivo(true);
+            }
+
+            Estabelecimento cadastrado = estabelecimentoRepository.inserir(estabelecimento);
+            return Response.status(Response.Status.CREATED).entity(cadastrado).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\":\"Erro ao cadastrar estabelecimento: " + e.getMessage() + "\"}")
+                    .build();
+        }
+    }
+
+    @POST
+    @Path("/{id}/checkin")
+    public Response registrarCheckin(@PathParam("id") Integer estabelecimentoId,
+                                     CheckinRequest request,
+                                     @Context SecurityContext sc) {
+        try {
+            if (request == null || request.getLatitude() == null || request.getLongitude() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"Latitude e longitude são obrigatórias\"}")
+                        .build();
+            }
+
+            Optional<Usuario> usuarioOpt = usuarioRepository.buscarPorEmail(
+                    sc != null && sc.getUserPrincipal() != null ? sc.getUserPrincipal().getName() : null);
+            if (usuarioOpt.isEmpty()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não autenticado\"}")
+                        .build();
+            }
+
+            Optional<Estabelecimento> estabelecimentoOpt = estabelecimentoRepository.buscarAtivoPorId(estabelecimentoId);
+            if (estabelecimentoOpt.isEmpty()) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity("{\"error\":\"Estabelecimento não encontrado\"}")
+                        .build();
+            }
+
+            Estabelecimento estabelecimento = estabelecimentoOpt.get();
+            double distancia = calcularDistanciaMetros(
+                    request.getLatitude(), request.getLongitude(),
+                    estabelecimento.getLatitude(), estabelecimento.getLongitude());
+
+            if (distancia > RAIO_MAXIMO_METROS) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"Você precisa estar a até 50 metros para fazer check-in\"}")
+                        .build();
+            }
+
+            Checkin checkin = checkinRepository.registrar(usuarioOpt.get(), estabelecimento, distancia);
+            CheckinResponse resposta = montarResposta(checkin);
+
+            return Response.ok(resposta).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\":\"Erro ao registrar check-in\"}")
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("/{id}/checkins")
+    public Response listarCheckins(@PathParam("id") Integer estabelecimentoId) {
+        Optional<Estabelecimento> estabelecimentoOpt = estabelecimentoRepository.buscarAtivoPorId(estabelecimentoId);
+        if (estabelecimentoOpt.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("{\"error\":\"Estabelecimento não encontrado\"}")
+                    .build();
+        }
+
+        List<Checkin> lista = checkinRepository.listarPorEstabelecimento(estabelecimentoId);
+        List<CheckinDetalheDTO> dto = lista.stream()
+                .map(this::converterParaDetalhe)
+                .collect(Collectors.toList());
+
+        return Response.ok(dto).build();
+    }
+
+    private CheckinResponse montarResposta(Checkin checkin) {
+        CheckinResponse resp = new CheckinResponse();
+        resp.setId(checkin.getId());
+        resp.setUsuarioId(checkin.getUsuario() != null ? checkin.getUsuario().getId() : null);
+        resp.setEstabelecimentoId(checkin.getEstabelecimento() != null ? checkin.getEstabelecimento().getId() : null);
+        resp.setDistanciaMetros(checkin.getDistanciaMetros());
+        resp.setCriadoEm(checkin.getCriadoEm());
+        return resp;
+    }
+
+    private CheckinDetalheDTO converterParaDetalhe(Checkin checkin) {
+        CheckinDetalheDTO dto = new CheckinDetalheDTO();
+        dto.setId(checkin.getId());
+        if (checkin.getUsuario() != null) {
+            dto.setUsuarioId(checkin.getUsuario().getId());
+            dto.setUsuarioNome(checkin.getUsuario().getNome());
+            dto.setUsuarioEmail(checkin.getUsuario().getEmail());
+        }
+        if (checkin.getEstabelecimento() != null) {
+            dto.setEstabelecimentoId(checkin.getEstabelecimento().getId());
+        }
+        dto.setDistanciaMetros(checkin.getDistanciaMetros());
+        dto.setCriadoEm(checkin.getCriadoEm());
+        return dto;
+    }
+
+    // Cálculo de distância usando fórmula de Haversine
+    private double calcularDistanciaMetros(double lat1, double lon1, double lat2, double lon2) {
+        final int RAIO_TERRA_KM = 6371;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distanciaKm = RAIO_TERRA_KM * c;
+        return distanciaKm * 1000;
+    }
+}
+
+
