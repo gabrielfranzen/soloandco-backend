@@ -1,0 +1,41 @@
+# Arquivos compilados Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Pasta target (Maven)
+target/
+!target/classes/.gitkeep
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.buildpath
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.cache
+
+# Outros
+*.orig
+
