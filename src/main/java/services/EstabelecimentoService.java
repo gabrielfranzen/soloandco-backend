@@ -11,12 +11,15 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import model.Checkin;
+import model.ChatSala;
 import model.Estabelecimento;
 import model.Usuario;
 import model.dto.CheckinDetalheDTO;
 import model.dto.CheckinRequest;
 import model.dto.CheckinResponse;
 import repository.CheckinRepository;
+import repository.ChatSalaRepository;
+import repository.ChatParticipanteRepository;
 import repository.EstabelecimentoRepository;
 import repository.UsuarioRepository;
 
@@ -35,6 +38,12 @@ public class EstabelecimentoService {
 
     @Inject
     private UsuarioRepository usuarioRepository;
+
+    @Inject
+    private ChatSalaRepository chatSalaRepository;
+
+    @Inject
+    private ChatParticipanteRepository chatParticipanteRepository;
 
     @GET
     public Response listar() {
@@ -115,6 +124,16 @@ public class EstabelecimentoService {
             }
 
             Checkin checkin = checkinRepository.registrar(usuarioOpt.get(), estabelecimento, distancia);
+            
+            // Integração com chat: adiciona usuário à sala automaticamente
+            try {
+                ChatSala sala = chatSalaRepository.buscarOuCriar(estabelecimento);
+                chatParticipanteRepository.adicionarOuAtualizarParticipante(sala, usuarioOpt.get(), checkin);
+            } catch (Exception chatEx) {
+                // Log do erro mas não falha o check-in
+                System.err.println("Erro ao adicionar usuário ao chat: " + chatEx.getMessage());
+            }
+            
             CheckinResponse resposta = montarResposta(checkin);
 
             return Response.ok(resposta).build();

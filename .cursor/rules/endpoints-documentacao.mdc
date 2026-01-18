@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+1. **SEMPRE** consulte o arquivo `API_ENDPOINTS.md` antes de criar ou modificar endpoints.
+2. **SEMPRE** atualize o arquivo `API_ENDPOINTS.md` quando:
+   - Criar um novo endpoint
+   - Modificar um endpoint existente (mudança de método HTTP, path, parâmetros, request/response)
+   - Remover um endpoint
+   - Alterar códigos de status de resposta
+   - Modificar DTOs usados em endpoints
+3. Ao atualizar a documentação, inclua:
+   - Método HTTP e path completo
+   - Se requer autenticação
+   - Parâmetros de path, query ou body
+   - Exemplos de request e response
+   - Códigos de status possíveis e suas mensagens
+   - Data da última atualização no topo do arquivo
+4. Mantenha a documentação sincronizada com o código. Se o código mudar, a documentação deve mudar imediatamente.

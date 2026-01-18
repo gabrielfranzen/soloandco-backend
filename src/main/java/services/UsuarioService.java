@@ -145,7 +145,11 @@ public class UsuarioService {
 
 	@POST
 	@Path("/email")
-	public Response consultarUsuarioPorEmail(String email) {
+	public Response consultarUsuarioPorEmail(java.util.Map<String, String> dados) {
+		if (dados == null || !dados.containsKey("email") || dados.get("email") == null || dados.get("email").isBlank()) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("Email é obrigatório").build();
+		}
+		String email = dados.get("email").trim().toLowerCase();
 		var usuarioDTO = this.usuarioRepository.buscarPorEmailDTO(email);
 		if (usuarioDTO.isPresent()) {
 			return Response.ok().entity(usuarioDTO.get()).build();
