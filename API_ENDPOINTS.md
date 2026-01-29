@@ -2,7 +2,7 @@
 
 **Base URL:** `/api`
 
-**Última atualização:** 2026-01-17 (Long Polling e Paginação implementados)
+**Última atualização:** 2026-01-29 (Fotos de usuário no Google Storage)
 
 ---
 
@@ -96,6 +96,7 @@ Lista todos os usuários cadastrados.
     "email": "string",
     "telefone": "string",
     "roles": "string",
+    "uuidFoto": "string (opcional, UUID retornado pelo Google Storage ao fazer upload da foto)",
     "dataCadastro": "2026-01-17T00:00:00",
     "dataAtualizacao": "2026-01-17T00:00:00"
   }
@@ -122,6 +123,7 @@ Consulta um usuário específico por ID.
   "email": "string",
   "telefone": "string",
   "roles": "string",
+  "uuidFoto": "string (opcional, UUID retornado pelo Google Storage ao fazer upload da foto)",
   "dataCadastro": "2026-01-17T00:00:00",
   "dataAtualizacao": "2026-01-17T00:00:00"
 }
@@ -158,6 +160,7 @@ Cadastra um novo usuário.
   "email": "string",
   "telefone": "string",
   "roles": "string",
+  "uuidFoto": "string (opcional, UUID retornado pelo Google Storage ao fazer upload da foto)",
   "dataCadastro": "2026-01-17T00:00:00",
   "dataAtualizacao": "2026-01-17T00:00:00"
 }
@@ -204,6 +207,7 @@ Atualiza um usuário existente.
   "email": "string",
   "telefone": "string",
   "roles": "string",
+  "uuidFoto": "string (opcional, UUID retornado pelo Google Storage ao fazer upload da foto)",
   "dataCadastro": "2026-01-17T00:00:00",
   "dataAtualizacao": "2026-01-17T00:00:00"
 }
@@ -267,6 +271,7 @@ Consulta um usuário por email.
   "email": "string",
   "telefone": "string",
   "roles": "string",
+  "uuidFoto": "string (opcional, UUID retornado pelo Google Storage ao fazer upload da foto)",
   "dataCadastro": "2026-01-17T00:00:00"
 }
 ```
@@ -279,6 +284,92 @@ Consulta um usuário por email.
 **Response 404 Not Found:**
 ```
 "Usuário não encontrado"
+```
+
+---
+
+### POST `/api/usuario/{id}/foto`
+Atualiza a foto do usuário armazenando o arquivo no Google Storage.
+
+**Autenticação:** Não especificada
+
+**Path Parameters:**
+- `id` (Integer): ID do usuário
+
+**Request Body:**
+```json
+{
+  "nomeArquivo": "foto.png",
+  "contentType": "image/png",
+  "arquivoBase64": "string (base64)"
+}
+```
+
+**Nota:** O arquivo é enviado para o Google Cloud Storage, que retorna um UUID. Esse UUID é armazenado no banco de dados no campo `uuidFoto` e retornado na resposta.
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "nome": "string",
+  "email": "string",
+  "telefone": "string",
+  "roles": "string",
+  "uuidFoto": "550e8400-e29b-41d4-a716-446655440000",
+  "dataCadastro": "2026-01-17T00:00:00",
+  "dataAtualizacao": "2026-01-17T00:00:00"
+}
+```
+
+**Observação:** O `uuidFoto` contém o UUID retornado pelo Google Storage. Para exibir a foto, use o endpoint `GET /api/usuario/{id}/foto`.
+
+**Response 400 Bad Request:**
+- "ID do usuário é obrigatório"
+- "Arquivo é obrigatório"
+- "Arquivo inválido"
+- "Arquivo excede o tamanho máximo de 5MB"
+- "Tipo de arquivo inválido"
+
+**Response 404 Not Found:**
+```
+"Usuário não encontrado"
+```
+
+**Response 500 Internal Server Error:**
+```
+"Erro ao atualizar foto do usuário: {mensagem}"
+```
+
+---
+
+### GET `/api/usuario/{id}/foto`
+Retorna a foto do usuário.
+
+**Autenticação:** Não especificada
+
+**Path Parameters:**
+- `id` (Integer): ID do usuário
+
+**Response 200 OK:**
+Arquivo binário da imagem com `Content-Type` correspondente.
+
+**Response 400 Bad Request:**
+```
+"ID do usuário é obrigatório"
+```
+
+**Response 404 Not Found:**
+```
+"Usuário não encontrado"
+```
+ou
+```
+"Foto do usuário não encontrada"
+```
+
+**Response 500 Internal Server Error:**
+```
+"Erro ao buscar foto do usuário: {mensagem}"
 ```
 
 ---
@@ -927,4 +1018,5 @@ O token é obtido através do endpoint `/api/auth/login` ou renovado através do
 10. **Cada check-in renova o acesso ao chat do estabelecimento por mais 24 horas**
 11. **O sistema de chat utiliza Long Polling para reduzir requisições (de 720/hora para ~120/hora)**
 12. **Paginação de mensagens permite scroll infinito para carregar histórico completo**
+13. **Fotos de usuário são armazenadas no Google Cloud Storage: o upload retorna um UUID que é armazenado no banco no campo `uuidFoto` e retornado nas respostas da API. Para exibir a foto, use o endpoint `GET /api/usuario/{id}/foto`**
 

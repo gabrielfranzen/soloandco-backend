@@ -52,6 +52,9 @@ public class Usuario {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date dataAtualizacao;
 
+	@Column(name = "uuid_foto", length = 100)
+	private String uuidFoto;
+
 	public Integer getId() {
 		return id;
 	}
@@ -123,6 +126,15 @@ public class Usuario {
 	public void setDataAtualizacao(Date dataAtualizacao) {
 		this.dataAtualizacao = dataAtualizacao;
 	}
+
+	public String getUuidFoto() {
+		return uuidFoto;
+	}
+
+	public void setUuidFoto(String uuidFoto) {
+		this.uuidFoto = uuidFoto;
+	}
+
 
 	@PrePersist
 	protected void aoCriar() {

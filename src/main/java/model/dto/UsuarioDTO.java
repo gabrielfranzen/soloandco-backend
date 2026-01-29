@@ -9,6 +9,7 @@ public class UsuarioDTO {
     private String email;
     private String roles;
     private String telefone;
+    private String uuidFoto;
 
     // Construtor padrão
     public UsuarioDTO() {}
@@ -67,5 +68,13 @@ public class UsuarioDTO {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
+    }
+
+    public String getUuidFoto() {
+        return uuidFoto;
+    }
+
+    public void setUuidFoto(String uuidFoto) {
+        this.uuidFoto = uuidFoto;
     }
 }

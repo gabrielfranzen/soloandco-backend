@@ -229,6 +229,7 @@ public class UsuarioRepository extends AbstractCrudRepository<Usuario> {
         dto.setEmail(usuario.getEmail());
         dto.setRoles(usuario.getRoles());
         dto.setTelefone(usuario.getTelefone());
+        dto.setUuidFoto(usuario.getUuidFoto());
         
         return dto;
     }
