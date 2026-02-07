@@ -130,3 +130,27 @@ CREATE INDEX IF NOT EXISTS idx_chat_participante_usuario ON website.chat_partici
 
 -- Índice para limpar acessos expirados
 CREATE INDEX IF NOT EXISTS idx_chat_participante_expira_em ON website.chat_participante(acesso_expira_em);
+
+----------------------------------------------------------------------------------------------------------------------
+
+-- V2
+CREATE TABLE IF NOT EXISTS website.token_recuperacao_senha (
+  id SERIAL PRIMARY KEY,
+  usuario_id INTEGER NOT NULL REFERENCES website.usuario(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  data_expiracao TIMESTAMP NOT NULL,
+  usado BOOLEAN NOT NULL DEFAULT FALSE,
+  data_uso TIMESTAMP,
+  CONSTRAINT fk_usuario FOREIGN KEY (usuario_id) REFERENCES website.usuario(id)
+);
+
+-- Índices para melhorar performance nas consultas
+CREATE INDEX IF NOT EXISTS idx_token_recuperacao_token ON website.token_recuperacao_senha(token);
+CREATE INDEX IF NOT EXISTS idx_token_recuperacao_usuario ON website.token_recuperacao_senha(usuario_id);
+
+-- Comentários nas colunas
+COMMENT ON TABLE website.token_recuperacao_senha IS 'Tokens de recuperação de senha com validade de 30 minutos';
+COMMENT ON COLUMN website.token_recuperacao_senha.token IS 'Token UUID único para recuperação';
+COMMENT ON COLUMN website.token_recuperacao_senha.usado IS 'Indica se o token já foi utilizado';
+COMMENT ON COLUMN website.token_recuperacao_senha.data_expiracao IS 'Data e hora de expiração do token';

@@ -2,7 +2,7 @@
 
 **Base URL:** `/api`
 
-**Última atualização:** 2026-01-29 (Fotos de usuário no Google Storage)
+**Última atualização:** 2026-02-07 (Recuperação de senha com URL dinâmica)
 
 ---
 
@@ -76,6 +76,195 @@ Authorization: Bearer {accessToken}
 {
   "email": "string"
 }
+```
+
+---
+
+### POST `/api/auth/solicitar-recuperacao`
+Solicita recuperação de senha. Envia um e-mail com link para redefinir senha.
+
+**Autenticação:** Não requerida
+
+**Request Body:**
+```json
+{
+  "email": "string",
+  "frontendUrl": "string"
+}
+```
+
+**Campos:**
+- `email`: E-mail do usuário cadastrado
+- `frontendUrl`: URL base do frontend (ex: "http://localhost:8182" ou "https://seudominio.com")
+
+**Response 200 OK:**
+```json
+{
+  "message": "Link de recuperação enviado para o seu e-mail"
+}
+```
+
+**Response 404 Not Found:**
+```json
+{
+  "error": "E-mail não encontrado"
+}
+```
+
+**Response 500 Internal Server Error:**
+```json
+{
+  "error": "Erro ao processar solicitação: {mensagem}"
+}
+```
+
+**Observações:**
+- O token gerado tem validade de 30 minutos
+- Tokens anteriores do mesmo usuário são invalidados ao solicitar um novo
+- O e-mail contém um link no formato: `http://frontend.com/recuperar-senha?token={token}`
+
+---
+
+### GET `/api/auth/validar-token-recuperacao`
+Valida se um token de recuperação de senha é válido.
+
+**Autenticação:** Não requerida
+
+**Query Parameters:**
+- `token` (obrigatório): Token UUID recebido por e-mail
+
+**Response 200 OK:**
+```json
+{
+  "message": "Token válido"
+}
+```
+
+**Response 400 Bad Request:**
+Retorna um dos seguintes erros:
+```json
+{
+  "error": "Token é obrigatório"
+}
+```
+```json
+{
+  "error": "Token inválido"
+}
+```
+```json
+{
+  "error": "Token já utilizado"
+}
+```
+```json
+{
+  "error": "Token expirado"
+}
+```
+
+**Response 500 Internal Server Error:**
+```json
+{
+  "error": "Erro ao validar token: {mensagem}"
+}
+```
+
+---
+
+### POST `/api/auth/redefinir-senha`
+Redefine a senha do usuário usando um token válido.
+
+**Autenticação:** Não requerida
+
+**Request Body:**
+```json
+{
+  "token": "string",
+  "novaSenha": "string"
+}
+```
+
+**Validações:**
+- `token`: Obrigatório
+- `novaSenha`: Obrigatório, mínimo 6 caracteres
+
+**Response 200 OK:**
+```json
+{
+  "message": "Senha redefinida com sucesso"
+}
+```
+
+**Response 400 Bad Request:**
+Retorna um dos seguintes erros:
+```json
+{
+  "error": "Token inválido"
+}
+```
+```json
+{
+  "error": "Token já utilizado"
+}
+```
+```json
+{
+  "error": "Token expirado"
+}
+```
+
+**Response 404 Not Found:**
+```json
+{
+  "error": "Usuário não encontrado"
+}
+```
+
+**Response 500 Internal Server Error:**
+```json
+{
+  "error": "Erro ao redefinir senha: {mensagem}"
+}
+```
+
+**Observações:**
+- Após redefinir a senha, o token é marcado como usado e não pode ser reutilizado
+- A nova senha é criptografada com BCrypt antes de ser salva
+
+---
+
+## Email (`/email`)
+
+### POST `/api/email/enviar`
+Envia um email via Google SMTP (senha de app).
+
+**Autenticação:** Não especificada
+
+**Request Body:**
+```json
+{
+  "destinatario": "string",
+  "assunto": "string",
+  "mensagem": "string",
+  "html": true
+}
+```
+
+**Response 200 OK:**
+```
+"Email enviado com sucesso"
+```
+
+**Response 400 Bad Request:**
+- "Dados do email são obrigatórios"
+- "Destinatário é obrigatório"
+- "Assunto é obrigatório"
+- "Mensagem é obrigatória"
+
+**Response 500 Internal Server Error:**
+```
+"Erro ao enviar email: {mensagem}"
 ```
 
 ---

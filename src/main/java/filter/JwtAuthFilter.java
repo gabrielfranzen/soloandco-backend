@@ -66,10 +66,23 @@ public class JwtAuthFilter implements ContainerRequestFilter {
             normalized = normalized.substring("api/".length());
         }
 
+        // Endpoints de autenticação
         if (normalized.equalsIgnoreCase("auth/login") || normalized.equalsIgnoreCase("auth/refresh")) {
             return true;
         }
 
+        // Endpoints de recuperação de senha (públicos)
+        if (normalized.equalsIgnoreCase("auth/solicitar-recuperacao")) {
+            return true;
+        }
+        if (normalized.startsWith("auth/validar-token-recuperacao")) {
+            return true;
+        }
+        if (normalized.equalsIgnoreCase("auth/redefinir-senha")) {
+            return true;
+        }
+
+        // Cadastro de usuário (POST)
         if ("POST".equalsIgnoreCase(method) && normalized.equalsIgnoreCase("usuario")) {
             return true;
         }
