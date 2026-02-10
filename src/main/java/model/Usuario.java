@@ -2,6 +2,7 @@ package model;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,6 +42,7 @@ public class Usuario {
 	@Column(name = "roles", length = 100)
 	private String roles;
 
+	@JsonIgnore
 	@Column(name = "refresh_token", length = 255)
 	private String refreshToken;
 
@@ -134,7 +136,6 @@ public class Usuario {
 	public void setUuidFoto(String uuidFoto) {
 		this.uuidFoto = uuidFoto;
 	}
-
 
 	@PrePersist
 	protected void aoCriar() {

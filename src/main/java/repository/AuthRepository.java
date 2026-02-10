@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
 import model.Usuario;
 import model.dto.RefreshRequest;
@@ -17,6 +18,9 @@ public class AuthRepository extends AbstractCrudRepository<Usuario>{
 
     @EJB
     private UsuarioRepository usuarioRepository;
+
+    @Inject
+    private UsuarioPapelRepository usuarioPapelRepository;
 
     private static final Duration ACCESS_TTL  = Duration.ofMinutes(15);
     private static final Duration REFRESH_TTL = Duration.ofDays(15);
@@ -34,9 +38,23 @@ public class AuthRepository extends AbstractCrudRepository<Usuario>{
             throw new NotAuthorizedException("Email ou senha incorretos");
         }
 
-        String access  = JwtUtil.generateToken(user.get().getEmail(), user.get().getRoles(), ACCESS_TTL.toMinutes());
+        Usuario usuario = user.get();
+        String papeis = usuarioPapelRepository.obterPapeisComoString(usuario.getId());
+        
+        // Incluir papéis no campo roles do JWT (junto com o legado se existir)
+        String rolesParaJwt = usuario.getRoles();
+        if (papeis != null && !papeis.isBlank()) {
+            if (rolesParaJwt == null || rolesParaJwt.isBlank()) {
+                rolesParaJwt = papeis;
+            } else {
+                // Combinar roles legado com novos papéis
+                rolesParaJwt = rolesParaJwt + "," + papeis;
+            }
+        }
+
+        String access  = JwtUtil.generateToken(usuario.getEmail(), rolesParaJwt, ACCESS_TTL.toMinutes());
         String refresh = UUID.randomUUID().toString();
-        usuarioRepository.emitirRefreshToken(user.get(), refresh);
+        usuarioRepository.emitirRefreshToken(usuario, refresh);
 
         return new TokenResponse(access, refresh, ACCESS_TTL.toSeconds());
     }
@@ -50,7 +68,20 @@ public class AuthRepository extends AbstractCrudRepository<Usuario>{
             throw new NotAuthorizedException("invalid_refresh");
         }
 
-        String access  = JwtUtil.generateToken(user.getEmail(), user.getRoles(), ACCESS_TTL.toMinutes());
+        String papeis = usuarioPapelRepository.obterPapeisComoString(user.getId());
+        
+        // Incluir papéis no campo roles do JWT (junto com o legado se existir)
+        String rolesParaJwt = user.getRoles();
+        if (papeis != null && !papeis.isBlank()) {
+            if (rolesParaJwt == null || rolesParaJwt.isBlank()) {
+                rolesParaJwt = papeis;
+            } else {
+                // Combinar roles legado com novos papéis
+                rolesParaJwt = rolesParaJwt + "," + papeis;
+            }
+        }
+
+        String access  = JwtUtil.generateToken(user.getEmail(), rolesParaJwt, ACCESS_TTL.toMinutes());
         String refresh = UUID.randomUUID().toString(); // rotação de refresh
         usuarioRepository.emitirRefresh(user, refresh, REFRESH_TTL);
 

@@ -24,6 +24,25 @@ public class EstabelecimentoRepository extends AbstractCrudRepository<Estabeleci
                 .getResultList();
         return lista.stream().findFirst();
     }
+
+    public List<Estabelecimento> listarPorProprietario(Integer usuarioId) {
+        if (usuarioId == null) return List.of();
+        return em.createQuery(
+                "select e from Estabelecimento e where e.proprietario.id = :usuarioId and e.ativo = true order by e.criadoEm desc", 
+                Estabelecimento.class)
+                .setParameter("usuarioId", usuarioId)
+                .getResultList();
+    }
+
+    public Long contarCheckinsPorEstabelecimento(Integer estabelecimentoId) {
+        if (estabelecimentoId == null) return 0L;
+        return em.createQuery(
+                "select count(c) from Checkin c where c.estabelecimento.id = :estabelecimentoId", 
+                Long.class)
+                .setParameter("estabelecimentoId", estabelecimentoId)
+                .getSingleResult();
+    }
 }
+
 
 

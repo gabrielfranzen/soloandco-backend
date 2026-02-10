@@ -2,6 +2,7 @@ package model;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +34,11 @@ public class Estabelecimento {
 
     @Column(name = "ativo")
     private Boolean ativo = Boolean.TRUE;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_proprietario_id")
+    private Usuario proprietario;
 
     @Column(name = "criado_em", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -92,6 +98,14 @@ public class Estabelecimento {
 
     public void setCriadoEm(Date criadoEm) {
         this.criadoEm = criadoEm;
+    }
+
+    public Usuario getProprietario() {
+        return proprietario;
+    }
+
+    public void setProprietario(Usuario proprietario) {
+        this.proprietario = proprietario;
     }
 }
 

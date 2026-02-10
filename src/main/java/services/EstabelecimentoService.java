@@ -13,14 +13,18 @@ import jakarta.ws.rs.core.SecurityContext;
 import model.Checkin;
 import model.ChatSala;
 import model.Estabelecimento;
+import model.Papel;
 import model.Usuario;
 import model.dto.CheckinDetalheDTO;
 import model.dto.CheckinRequest;
 import model.dto.CheckinResponse;
+import model.dto.EstabelecimentoComEstatisticasDTO;
 import repository.CheckinRepository;
 import repository.ChatSalaRepository;
 import repository.ChatParticipanteRepository;
 import repository.EstabelecimentoRepository;
+import repository.PapelRepository;
+import repository.UsuarioPapelRepository;
 import repository.UsuarioRepository;
 
 @Path("/estabelecimentos")
@@ -45,6 +49,12 @@ public class EstabelecimentoService {
     @Inject
     private ChatParticipanteRepository chatParticipanteRepository;
 
+    @Inject
+    private PapelRepository papelRepository;
+
+    @Inject
+    private UsuarioPapelRepository usuarioPapelRepository;
+
     @GET
     public Response listar() {
         List<Estabelecimento> ativos = estabelecimentoRepository.listarAtivos();
@@ -52,7 +62,7 @@ public class EstabelecimentoService {
     }
 
     @POST
-    public Response cadastrar(Estabelecimento estabelecimento) {
+    public Response cadastrar(Estabelecimento estabelecimento, @Context SecurityContext sc) {
         try {
             if (estabelecimento == null) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -74,6 +84,35 @@ public class EstabelecimentoService {
 
             if (estabelecimento.getAtivo() == null) {
                 estabelecimento.setAtivo(true);
+            }
+
+            // Obter usuário autenticado
+            String emailUsuario = sc != null && sc.getUserPrincipal() != null 
+                ? sc.getUserPrincipal().getName() 
+                : null;
+                
+            if (emailUsuario == null) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não autenticado\"}")
+                        .build();
+            }
+
+            var usuarioOpt = usuarioRepository.buscarPorEmail(emailUsuario);
+            if (usuarioOpt.isEmpty()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não encontrado\"}")
+                        .build();
+            }
+
+            Usuario proprietario = usuarioOpt.get();
+            estabelecimento.setProprietario(proprietario);
+
+            // Atribuir papel de empresário ao proprietário se ainda não tiver
+            if (!usuarioPapelRepository.usuarioTemPapel(proprietario.getId(), Papel.CODIGO_EMPRESARIO)) {
+                var papelEmpresarioOpt = papelRepository.buscarPorCodigo(Papel.CODIGO_EMPRESARIO);
+                if (papelEmpresarioOpt.isPresent()) {
+                    usuarioPapelRepository.atribuirPapel(proprietario, papelEmpresarioOpt.get());
+                }
             }
 
             Estabelecimento cadastrado = estabelecimentoRepository.inserir(estabelecimento);
@@ -160,6 +199,124 @@ public class EstabelecimentoService {
                 .collect(Collectors.toList());
 
         return Response.ok(dto).build();
+    }
+
+    @GET
+    @Path("/meus")
+    public Response listarMeusEstabelecimentos(@Context SecurityContext sc) {
+        try {
+            String emailUsuario = sc != null && sc.getUserPrincipal() != null 
+                ? sc.getUserPrincipal().getName() 
+                : null;
+                
+            if (emailUsuario == null) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não autenticado\"}")
+                        .build();
+            }
+
+            var usuarioOpt = usuarioRepository.buscarPorEmail(emailUsuario);
+            if (usuarioOpt.isEmpty()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não encontrado\"}")
+                        .build();
+            }
+
+            Usuario usuario = usuarioOpt.get();
+            
+            // Verificar se o usuário é empresário
+            if (!usuarioPapelRepository.usuarioTemPapel(usuario.getId(), Papel.CODIGO_EMPRESARIO)) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity("{\"error\":\"Acesso permitido apenas para empresários\"}")
+                        .build();
+            }
+
+            List<Estabelecimento> estabelecimentos = estabelecimentoRepository.listarPorProprietario(usuario.getId());
+            List<EstabelecimentoComEstatisticasDTO> resultado = estabelecimentos.stream()
+                    .map(e -> converterParaEstatisticas(e))
+                    .collect(Collectors.toList());
+
+            return Response.ok(resultado).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\":\"Erro ao buscar estabelecimentos\"}")
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("/{id}/estatisticas")
+    public Response obterEstatisticas(@PathParam("id") Integer estabelecimentoId, @Context SecurityContext sc) {
+        try {
+            String emailUsuario = sc != null && sc.getUserPrincipal() != null 
+                ? sc.getUserPrincipal().getName() 
+                : null;
+                
+            if (emailUsuario == null) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não autenticado\"}")
+                        .build();
+            }
+
+            var usuarioOpt = usuarioRepository.buscarPorEmail(emailUsuario);
+            if (usuarioOpt.isEmpty()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Usuário não encontrado\"}")
+                        .build();
+            }
+
+            Usuario usuario = usuarioOpt.get();
+
+            // Verificar se o usuário é empresário
+            if (!usuarioPapelRepository.usuarioTemPapel(usuario.getId(), Papel.CODIGO_EMPRESARIO)) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity("{\"error\":\"Acesso permitido apenas para empresários\"}")
+                        .build();
+            }
+
+            var estabelecimentoOpt = estabelecimentoRepository.buscarAtivoPorId(estabelecimentoId);
+            if (estabelecimentoOpt.isEmpty()) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity("{\"error\":\"Estabelecimento não encontrado\"}")
+                        .build();
+            }
+
+            Estabelecimento estabelecimento = estabelecimentoOpt.get();
+
+            // Verificar se o usuário é o proprietário
+            if (estabelecimento.getProprietario() == null || 
+                !estabelecimento.getProprietario().getId().equals(usuario.getId())) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity("{\"error\":\"Você não tem permissão para acessar este estabelecimento\"}")
+                        .build();
+            }
+
+            EstabelecimentoComEstatisticasDTO resultado = converterParaEstatisticas(estabelecimento);
+            return Response.ok(resultado).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\":\"Erro ao buscar estatísticas\"}")
+                    .build();
+        }
+    }
+
+    private EstabelecimentoComEstatisticasDTO converterParaEstatisticas(Estabelecimento estabelecimento) {
+        EstabelecimentoComEstatisticasDTO dto = new EstabelecimentoComEstatisticasDTO();
+        dto.setId(estabelecimento.getId());
+        dto.setNome(estabelecimento.getNome());
+        dto.setLatitude(estabelecimento.getLatitude());
+        dto.setLongitude(estabelecimento.getLongitude());
+        dto.setEndereco(estabelecimento.getEndereco());
+        dto.setAtivo(estabelecimento.getAtivo());
+        dto.setCriadoEm(estabelecimento.getCriadoEm());
+        
+        Long totalCheckins = estabelecimentoRepository.contarCheckinsPorEstabelecimento(estabelecimento.getId());
+        dto.setTotalCheckins(totalCheckins != null ? totalCheckins : 0L);
+        
+        var ultimoCheckin = checkinRepository.buscarUltimoCheckinData(estabelecimento.getId());
+        dto.setUltimoCheckin(ultimoCheckin);
+        
+        return dto;
     }
 
     private CheckinResponse montarResposta(Checkin checkin) {

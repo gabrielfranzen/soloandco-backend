@@ -1,5 +1,6 @@
 package repository;
 
+import java.util.Date;
 import java.util.List;
 
 import jakarta.ejb.Stateless;
@@ -31,6 +32,18 @@ public class CheckinRepository extends AbstractCrudRepository<Checkin> {
                 .setParameter("id", estabelecimentoId)
                 .getResultList();
     }
+
+    public Date buscarUltimoCheckinData(Integer estabelecimentoId) {
+        if (estabelecimentoId == null) return null;
+        List<Date> resultado = em.createQuery(
+                "select c.criadoEm from Checkin c where c.estabelecimento.id = :id order by c.criadoEm desc",
+                Date.class)
+                .setParameter("id", estabelecimentoId)
+                .setMaxResults(1)
+                .getResultList();
+        return resultado.isEmpty() ? null : resultado.get(0);
+    }
 }
+
 
 
