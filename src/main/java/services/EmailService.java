@@ -8,7 +8,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import model.dto.EmailEnvioRequest;
-import repository.EmailRepository;
+import repository.ResendEmailRepository;
 
 @Path("/email")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -16,7 +16,7 @@ import repository.EmailRepository;
 public class EmailService {
 
     @Inject
-    private EmailRepository emailRepository;
+    private ResendEmailRepository resendEmailRepository;
 
     @POST
     @Path("/enviar")
@@ -35,7 +35,7 @@ public class EmailService {
                 return Response.status(Response.Status.BAD_REQUEST).entity("Mensagem é obrigatória").build();
             }
 
-            emailRepository.enviarEmail(
+            resendEmailRepository.enviarEmail(
                 dados.getDestinatario().trim(),
                 dados.getAssunto().trim(),
                 dados.getMensagem(),

@@ -131,6 +131,9 @@ CREATE INDEX IF NOT EXISTS idx_chat_participante_usuario ON website.chat_partici
 -- Índice para limpar acessos expirados
 CREATE INDEX IF NOT EXISTS idx_chat_participante_expira_em ON website.chat_participante(acesso_expira_em);
 
+ALTER TABLE website.usuario 
+  ADD COLUMN IF NOT EXISTS uuid_foto VARCHAR(100);
+
 ----------------------------------------------------------------------------------------------------------------------
 
 -- V2

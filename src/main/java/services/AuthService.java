@@ -19,7 +19,7 @@ import model.dto.RedefinirSenhaRequest;
 import model.dto.RefreshRequest;
 import model.dto.SolicitarRecuperacaoRequest;
 import repository.AuthRepository;
-import repository.EmailRepository;
+import repository.ResendEmailRepository;
 import repository.TokenRecuperacaoSenhaRepository;
 import repository.UsuarioRepository;
 import utils.BcryptUtil;
@@ -40,7 +40,7 @@ public class AuthService {
     private TokenRecuperacaoSenhaRepository tokenRecuperacaoRepository;
 
     @Inject
-    private EmailRepository emailRepository;
+    private ResendEmailRepository emailService;
 
     @POST
     @Path("/login")
@@ -104,7 +104,7 @@ public class AuthService {
             String htmlEmail = TemplateEmailRecuperacaoDeSenha.gerarEmailRecuperacaoSenha(usuario.getNome(), linkRecuperacao);
 
             // Envia e-mail
-            emailRepository.enviarEmail(
+            emailService.enviarEmail(
                 usuario.getEmail(),
                 "Recuperação de Senha - Solo & Co",
                 htmlEmail,

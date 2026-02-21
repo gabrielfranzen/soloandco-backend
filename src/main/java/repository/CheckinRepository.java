@@ -24,9 +24,9 @@ public class CheckinRepository extends AbstractCrudRepository<Checkin> {
     public List<Checkin> listarPorEstabelecimento(Integer estabelecimentoId) {
         return em.createQuery(
                 "select c from Checkin c "
-                        + "join fetch c.usuario u "
-                        + "join fetch c.estabelecimento e "
-                        + "where e.id = :id "
+                        + "join fetch c.usuario "
+                        + "join fetch c.estabelecimento "
+                        + "where c.estabelecimento.id = :id "
                         + "order by c.criadoEm desc",
                 Checkin.class)
                 .setParameter("id", estabelecimentoId)

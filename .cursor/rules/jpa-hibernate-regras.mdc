@@ -1,0 +1,171 @@
+---
+alwaysApply: true
+---
+
+# Regras JPA/Hibernate - Backend SoloAndCo
+
+## 1. FETCH JOINS - NUNCA USE ALIAS
+
+**❌ ERRADO:**
+```java
+// NÃO USE alias em fetch joins
+"select c from Checkin c " +
+"join fetch c.usuario u " +      // ❌ alias 'u' não permitido
+"join fetch c.estabelecimento e " + // ❌ alias 'e' não permitido  
+"where e.id = :id"
+```
+
+**✅ CORRETO:**
+```java
+// Use fetch joins SEM alias
+"select c from Checkin c " +
+"join fetch c.usuario " +        // ✅ sem alias
+"join fetch c.estabelecimento " + // ✅ sem alias
+"where c.estabelecimento.id = :id" // ✅ referência completa
+```
+
+**Motivo:** A especificação JPA não permite aliases em `join fetch`. Isso causará:
+```
+org.hibernate.query.sqm.InterpretationException: 
+The JPA specification does not permit specifying an alias for fetch joins.
+```
+
+## 2. QUERIES JPQL - Boas Práticas
+
+### 2.1 Use fetch joins para evitar N+1
+```java
+// ✅ Carrega relacionamentos em uma única query
+"select c from Checkin c " +
+"join fetch c.usuario " +
+"join fetch c.estabelecimento " +
+"where c.id = :id"
+```
+
+### 2.2 Quando precisar de alias, use join normal
+```java
+// ✅ Se precisar filtrar ou usar alias, use join normal (não fetch)
+"select c from Checkin c " +
+"join c.usuario u " +
+"join c.estabelecimento e " +
+"where e.ativo = true and u.id = :usuarioId"
+```
+
+### 2.3 Named Parameters sempre
+```java
+// ✅ Use named parameters
+.setParameter("id", estabelecimentoId)
+
+// ❌ Evite positional parameters
+.setParameter(1, estabelecimentoId)
+```
+
+## 3. Repository - Padrões
+
+### 3.1 Sempre estenda AbstractCrudRepository
+```java
+@Stateless
+public class MinhaRepository extends AbstractCrudRepository<MinhaEntidade> {
+    // métodos específicos
+}
+```
+
+### 3.2 Método de listagem com relacionamentos
+```java
+public List<Entidade> listarComRelacionamentos() {
+    return em.createQuery(
+        "select e from Entidade e " +
+        "join fetch e.relacionamento1 " +
+        "join fetch e.relacionamento2",
+        Entidade.class)
+        .getResultList();
+}
+```
+
+## 4. Transações
+
+### 4.1 Use @Stateless para gerenciamento automático
+```java
+@Stateless // Gerencia transações automaticamente
+public class MeuRepository extends AbstractCrudRepository<Entidade> {
+}
+```
+
+## 5. DTOs vs Entidades
+
+### 5.1 Sempre retorne DTOs nos endpoints
+```java
+// ❌ Não retorne entidades JPA diretamente
+@GET
+public Response listar() {
+    List<Entidade> entidades = repository.listar();
+    return Response.ok(entidades).build(); // ❌
+}
+
+// ✅ Converta para DTOs
+@GET
+public Response listar() {
+    List<Entidade> entidades = repository.listar();
+    List<EntidadeDTO> dtos = entidades.stream()
+        .map(this::converterParaDTO)
+        .collect(Collectors.toList());
+    return Response.ok(dtos).build(); // ✅
+}
+```
+
+## 6. Erros Comuns e Soluções
+
+### 6.1 LazyInitializationException
+**Problema:** Tentar acessar relacionamento lazy fora da transação
+
+**Solução:** Use fetch join ou DTO projection
+```java
+// ✅ Carregue relacionamentos na query
+"select e from Entidade e join fetch e.relacionamento"
+```
+
+### 6.2 MultipleBagFetchException
+**Problema:** Múltiplos fetch joins de coleções
+
+**Solução:** Use queries separadas ou @BatchSize
+```java
+// ❌ Múltiplos fetch de coleções
+"select e from Entidade e " +
+"join fetch e.colecao1 " +
+"join fetch e.colecao2" // Pode causar erro
+
+// ✅ Use queries separadas ou Set ao invés de List
+```
+
+## 7. Performance
+
+### 7.1 Use índices em campos de busca frequente
+```java
+@Entity
+@Table(name = "entidade", indexes = {
+    @Index(name = "idx_campo_busca", columnList = "campo_busca")
+})
+```
+
+### 7.2 Pagination para grandes resultados
+```java
+public List<Entidade> listarPaginado(int pagina, int tamanho) {
+    return em.createQuery("select e from Entidade e", Entidade.class)
+        .setFirstResult(pagina * tamanho)
+        .setMaxResults(tamanho)
+        .getResultList();
+}
+```
+
+## 8. Checklist antes de fazer commit
+
+- [ ] Nenhum alias em `join fetch`
+- [ ] DTOs ao invés de entidades nos endpoints
+- [ ] Named parameters nas queries
+- [ ] Fetch joins para evitar N+1
+- [ ] Tratamento de Optional
+- [ ] Validação de parâmetros nulos
+- [ ] Testes com dados reais
+
+---
+**Última atualização:** 21/02/2026
+**Contexto:** Erro corrigido em CheckinRepository - alias em fetch join
