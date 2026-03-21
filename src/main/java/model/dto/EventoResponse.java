@@ -13,9 +13,12 @@ public class EventoResponse {
     private String horarioInicio;
     private String horarioFim;
     private String descricao;
+    private Boolean entradaGratuita;
     private Boolean ativo;
     private Date criadoEm;
     private List<EventoLinkResponse> links;
+    private Integer totalPresencas;
+    private Boolean usuarioPretendeIr;
 
     public Integer getId() {
         return id;
@@ -81,6 +84,14 @@ public class EventoResponse {
         this.descricao = descricao;
     }
 
+    public Boolean getEntradaGratuita() {
+        return entradaGratuita;
+    }
+
+    public void setEntradaGratuita(Boolean entradaGratuita) {
+        this.entradaGratuita = entradaGratuita;
+    }
+
     public Boolean getAtivo() {
         return ativo;
     }
@@ -103,5 +114,21 @@ public class EventoResponse {
 
     public void setLinks(List<EventoLinkResponse> links) {
         this.links = links;
+    }
+
+    public Integer getTotalPresencas() {
+        return totalPresencas;
+    }
+
+    public void setTotalPresencas(Integer totalPresencas) {
+        this.totalPresencas = totalPresencas;
+    }
+
+    public Boolean getUsuarioPretendeIr() {
+        return usuarioPretendeIr;
+    }
+
+    public void setUsuarioPretendeIr(Boolean usuarioPretendeIr) {
+        this.usuarioPretendeIr = usuarioPretendeIr;
     }
 }

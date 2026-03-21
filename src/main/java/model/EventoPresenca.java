@@ -6,12 +6,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "evento_link", schema = "website")
-public class EventoLink {
+@Table(name = "evento_presenca", schema = "website")
+public class EventoPresenca {
 
     @Id
-    @SequenceGenerator(name = "evento_link_seq", sequenceName = "website.seq_evento_link", allocationSize = 1)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "evento_link_seq")
+    @SequenceGenerator(name = "evento_presenca_seq", sequenceName = "website.seq_evento_presenca", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "evento_presenca_seq")
     @Column(name = "id", nullable = false)
     private Integer id;
 
@@ -20,15 +20,10 @@ public class EventoLink {
     @JoinColumn(name = "evento_id", nullable = false)
     private Evento evento;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_id")
-    private TipoLinkEvento tipo;
-
-    @Column(name = "titulo", length = 150)
-    private String titulo;
-
-    @Column(name = "url", length = 500, nullable = false)
-    private String url;
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
 
     @Column(name = "criado_em", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -50,28 +45,12 @@ public class EventoLink {
         this.evento = evento;
     }
 
-    public TipoLinkEvento getTipo() {
-        return tipo;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setTipo(TipoLinkEvento tipo) {
-        this.tipo = tipo;
-    }
-
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public Date getCriadoEm() {

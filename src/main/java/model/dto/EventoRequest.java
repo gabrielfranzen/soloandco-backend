@@ -13,6 +13,7 @@ public class EventoRequest {
     private String horarioInicio;
     private String horarioFim;
     private String descricao;
+    private Boolean entradaGratuita;
     private List<EventoLinkRequest> links;
 
     public String getNome() {
@@ -61,6 +62,14 @@ public class EventoRequest {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public Boolean getEntradaGratuita() {
+        return entradaGratuita;
+    }
+
+    public void setEntradaGratuita(Boolean entradaGratuita) {
+        this.entradaGratuita = entradaGratuita;
     }
 
     public List<EventoLinkRequest> getLinks() {

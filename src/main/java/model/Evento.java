@@ -47,6 +47,9 @@ public class Evento {
     @Column(name = "descricao", columnDefinition = "TEXT")
     private String descricao;
 
+    @Column(name = "entrada_gratuita", nullable = false)
+    private Boolean entradaGratuita = Boolean.TRUE;
+
     @Column(name = "ativo")
     private Boolean ativo = Boolean.TRUE;
 
@@ -116,6 +119,14 @@ public class Evento {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public Boolean getEntradaGratuita() {
+        return entradaGratuita;
+    }
+
+    public void setEntradaGratuita(Boolean entradaGratuita) {
+        this.entradaGratuita = entradaGratuita;
     }
 
     public Boolean getAtivo() {
