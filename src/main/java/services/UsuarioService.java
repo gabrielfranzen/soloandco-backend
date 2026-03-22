@@ -60,17 +60,17 @@ public class UsuarioService {
                 return Response.status(Response.Status.BAD_REQUEST).entity("Email é obrigatório").build();
             }
 
-            if (usuario.getTelefone() == null || usuario.getTelefone().isBlank()) {
-                return Response.status(Response.Status.BAD_REQUEST).entity("Telefone é obrigatório").build();
-            }
-
 			if (usuario.getSenha() == null || usuario.getSenha().isBlank()) {
 				return Response.status(Response.Status.BAD_REQUEST).entity("Senha é obrigatória").build();
 			}
 
             usuario.setNome(usuario.getNome().trim());
             usuario.setEmail(usuario.getEmail().trim().toLowerCase());
-            usuario.setTelefone(usuario.getTelefone().trim());
+            if (usuario.getTelefone() != null && !usuario.getTelefone().isBlank()) {
+                usuario.setTelefone(usuario.getTelefone().trim());
+            } else {
+                usuario.setTelefone(null);
+            }
 
 			String senhaCriptografada = BcryptUtil.criptografarSenha(usuario.getSenha());
 			usuario.setSenha(senhaCriptografada);

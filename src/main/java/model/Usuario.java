@@ -29,9 +29,8 @@ public class Usuario {
 	@Column(name = "email", length = 150, nullable = false, unique = true)
 	private String email;
 
-	@NotBlank(message = "Telefone é obrigatório")
 	@Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
-	@Column(name = "telefone", length = 20, nullable = false, unique = true)
+	@Column(name = "telefone", length = 20)
 	private String telefone;
 
 	@NotBlank(message = "Senha é obrigatória")

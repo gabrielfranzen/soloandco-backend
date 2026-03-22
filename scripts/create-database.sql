@@ -292,3 +292,10 @@ ALTER SEQUENCE website.seq_evento_presenca OWNED BY website.evento_presenca.id;
 
 CREATE INDEX IF NOT EXISTS idx_evento_presenca_evento   ON website.evento_presenca(evento_id);
 CREATE INDEX IF NOT EXISTS idx_evento_presenca_usuario  ON website.evento_presenca(usuario_id);
+
+
+-- Torna o campo telefone opcional na tabela usuario
+ALTER TABLE website.usuario ALTER COLUMN telefone DROP NOT NULL;
+
+-- Remove o constraint de unicidade do telefone (pois múltiplos usuários sem telefone resultariam em NULL duplicado)
+ALTER TABLE website.usuario DROP CONSTRAINT IF EXISTS uq_usuario_telefone;
