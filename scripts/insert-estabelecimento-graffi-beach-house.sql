@@ -9,10 +9,10 @@ BEGIN
     SELECT u.id
       INTO v_usuario_id
       FROM website.usuario u
-     WHERE u.email = 'gfranzen005@gmail.com';
+     WHERE u.email = 'hostelgraffi@gmail.com';
 
     IF v_usuario_id IS NULL THEN
-        RAISE EXCEPTION 'Usuário com e-mail % não foi encontrado.', 'gfranzen005@gmail.com';
+        RAISE EXCEPTION 'Usuário com e-mail % não foi encontrado.', 'hostelgraffi@gmail.com';
     END IF;
 
     INSERT INTO website.papeis (id, nome, codigo)
@@ -28,14 +28,15 @@ BEGIN
       FROM website.papeis p
      WHERE p.codigo = 'empresario';
 
-    INSERT INTO website.usuario_papel (usuario_id, papel_id)
-    SELECT v_usuario_id, v_papel_empresario_id
-    WHERE NOT EXISTS (
-        SELECT 1
-          FROM website.usuario_papel up
-         WHERE up.usuario_id = v_usuario_id
-           AND up.papel_id = v_papel_empresario_id
+    -- Alinha a sequência ao maior id da tabela (evita erro de PK quando a sequência ficou defasada)
+    PERFORM setval(
+        'website.seq_usuario_papel',
+        COALESCE((SELECT MAX(id) FROM website.usuario_papel), 0)
     );
+
+    INSERT INTO website.usuario_papel (usuario_id, papel_id)
+    VALUES (v_usuario_id, v_papel_empresario_id)
+    ON CONFLICT (usuario_id, papel_id) DO NOTHING;
 
     SELECT e.id
       INTO v_estabelecimento_id
