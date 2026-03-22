@@ -214,7 +214,7 @@ CREATE INDEX IF NOT EXISTS idx_estabelecimento_proprietario ON website.estabelec
 
 ----------------------------------------------------------------------------------------------------------------------
 
--- V4 - Sistema de Eventos
+-- V4, V5 e V6 - Sistema de eventos, presença em eventos e tipos de link
 CREATE SEQUENCE IF NOT EXISTS website.seq_evento INCREMENT BY 1 MINVALUE 1 START WITH 1 NO CYCLE;
 
 CREATE TABLE IF NOT EXISTS website.evento (
@@ -227,12 +227,30 @@ CREATE TABLE IF NOT EXISTS website.evento (
     horario_fim TIME NOT NULL,
     descricao TEXT,
     ativo BOOLEAN DEFAULT TRUE,
+    entrada_gratuita BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMP DEFAULT NOW(),
     CONSTRAINT pk_evento PRIMARY KEY (id),
     CONSTRAINT fk_evento_estabelecimento FOREIGN KEY (estabelecimento_id) REFERENCES website.estabelecimento(id) ON DELETE CASCADE
 );
 
 ALTER SEQUENCE website.seq_evento OWNED BY website.evento.id;
+
+-- V6 - Tipos de link de evento (antes de evento_link por causa da FK tipo_id)
+CREATE SEQUENCE IF NOT EXISTS website.seq_tipo_link_evento INCREMENT BY 1 MINVALUE 1 START WITH 1 NO CYCLE;
+
+CREATE TABLE IF NOT EXISTS website.tipo_link_evento (
+    id      INTEGER      NOT NULL DEFAULT nextval('website.seq_tipo_link_evento'),
+    codigo  VARCHAR(50)  NOT NULL,
+    nome    VARCHAR(150) NOT NULL,
+    CONSTRAINT pk_tipo_link_evento     PRIMARY KEY (id),
+    CONSTRAINT uk_tipo_link_evento_cod UNIQUE (codigo)
+);
+
+ALTER SEQUENCE website.seq_tipo_link_evento OWNED BY website.tipo_link_evento.id;
+
+INSERT INTO website.tipo_link_evento (codigo, nome)
+VALUES ('compra_de_ingresso', 'Compra de ingresso')
+ON CONFLICT (codigo) DO NOTHING;
 
 CREATE SEQUENCE IF NOT EXISTS website.seq_evento_link INCREMENT BY 1 MINVALUE 1 START WITH 1 NO CYCLE;
 
@@ -241,6 +259,7 @@ CREATE TABLE IF NOT EXISTS website.evento_link (
     evento_id INTEGER NOT NULL,
     titulo VARCHAR(150),
     url VARCHAR(500) NOT NULL,
+    tipo_id INTEGER REFERENCES website.tipo_link_evento(id) ON DELETE SET NULL,
     criado_em TIMESTAMP DEFAULT NOW(),
     CONSTRAINT pk_evento_link PRIMARY KEY (id),
     CONSTRAINT fk_evento_link_evento FOREIGN KEY (evento_id) REFERENCES website.evento(id) ON DELETE CASCADE
@@ -253,3 +272,23 @@ CREATE INDEX IF NOT EXISTS idx_evento_data_inicio ON website.evento(data_inicio)
 CREATE INDEX IF NOT EXISTS idx_evento_data_fim ON website.evento(data_fim);
 CREATE INDEX IF NOT EXISTS idx_evento_ativo ON website.evento(ativo);
 CREATE INDEX IF NOT EXISTS idx_evento_link_evento ON website.evento_link(evento_id);
+CREATE INDEX IF NOT EXISTS idx_evento_link_tipo ON website.evento_link(tipo_id);
+
+-- V5 - Intenção de presença em eventos
+CREATE SEQUENCE IF NOT EXISTS website.seq_evento_presenca INCREMENT BY 1 MINVALUE 1 START WITH 1 NO CYCLE;
+
+CREATE TABLE IF NOT EXISTS website.evento_presenca (
+    id          INTEGER   NOT NULL DEFAULT nextval('website.seq_evento_presenca'),
+    evento_id   INTEGER   NOT NULL,
+    usuario_id  INTEGER   NOT NULL,
+    criado_em   TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT pk_evento_presenca    PRIMARY KEY (id),
+    CONSTRAINT fk_ep_evento          FOREIGN KEY (evento_id)  REFERENCES website.evento(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_ep_usuario         FOREIGN KEY (usuario_id) REFERENCES website.usuario(id)  ON DELETE CASCADE,
+    CONSTRAINT uk_ep_evento_usuario  UNIQUE (evento_id, usuario_id)
+);
+
+ALTER SEQUENCE website.seq_evento_presenca OWNED BY website.evento_presenca.id;
+
+CREATE INDEX IF NOT EXISTS idx_evento_presenca_evento   ON website.evento_presenca(evento_id);
+CREATE INDEX IF NOT EXISTS idx_evento_presenca_usuario  ON website.evento_presenca(usuario_id);
